@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # EngineCare
 
 EngineCare is a predictive maintenance solution that estimates the Remaining Useful Life (RUL) of aircraft engines. It features a web-based interface for uploading engine sensor data and an intelligent backend that dynamically scales resources to perform analysis, providing a cost-effective and powerful tool for engine maintenance planning.
@@ -37,3 +38,26 @@ EngineCare/
 ## Getting Started
 
 Refer to `SHOWTIME.md` for a detailed guide on setting up the project for a live demonstration.
+=======
+# React + TypeScript + Vite
+
+This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+
+While this project uses React, Vite supports many popular JS frameworks. [See all the supported frameworks](https://vitejs.dev/guide/#scaffolding-your-first-vite-project).
+
+## Deploy Your Own
+
+Deploy your own Vite project with Vercel.
+
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/vercel/examples/tree/main/framework-boilerplates/vite-react&template=vite-react)
+
+_Live Example: https://vite-react-example.vercel.app_
+
+### Deploying From Your Terminal
+
+You can deploy your new Vite project with a single command from your terminal using [Vercel CLI](https://vercel.com/download):
+
+```shell
+$ vercel
+```
+>>>>>>> 2d7c4c036d44252566628b5de84778a80ebbb0ec
