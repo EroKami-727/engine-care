@@ -1,6 +1,6 @@
 import React from 'react';
 import './Hero.css';
-
+import engineBlueprint from "../assets/engine-blueprint.png";
 const Hero: React.FC = () => {
   return (
     <section className="hero">
@@ -62,7 +62,7 @@ const Hero: React.FC = () => {
           <div className="engine-display">
             <div className="engine-frame">
               <img 
-                src="/src/assets/engine-blueprint.png" 
+                src={engineBlueprint}
                 alt="Turbofan Engine Blueprint" 
                 className="engine-image"
               />
