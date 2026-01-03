@@ -1,0 +1,94 @@
+.sensor-charts {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2xl);
+    margin-top: var(--space-2xl);
+  }
+  
+  .chart-section {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-xl);
+    padding: var(--space-xl);
+    overflow: hidden;
+  }
+  
+  .chart-header {
+    margin-bottom: var(--space-lg);
+  }
+  
+  .chart-header h3 {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-xs);
+  }
+  
+  .chart-header h3 svg {
+    color: var(--color-primary-light);
+  }
+  
+  .chart-subtitle {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    color: var(--color-text-muted);
+  }
+  
+  .chart-container {
+    width: 100%;
+    position: relative;
+  }
+  
+  /* Custom Tooltip */
+  .chart-tooltip {
+    background: var(--color-surface-elevated);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-md);
+    padding: var(--space-md);
+    box-shadow: var(--shadow-elevated);
+  }
+  
+  .tooltip-label {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    color: var(--color-text-primary);
+    margin-bottom: var(--space-sm);
+    padding-bottom: var(--space-sm);
+    border-bottom: 1px solid var(--color-border);
+  }
+  
+  .tooltip-value {
+    font-family: var(--font-body);
+    font-size: 0.8125rem;
+    margin: var(--space-xs) 0;
+  }
+  
+  /* Recharts overrides */
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    stroke: var(--color-border);
+  }
+  
+  .recharts-legend-item-text {
+    color: var(--color-text-secondary) !important;
+  }
+  
+  /* Responsive */
+  @media (max-width: 768px) {
+    .chart-section {
+      padding: var(--space-lg);
+    }
+  
+    .chart-container {
+      margin-left: -10px;
+      margin-right: -10px;
+    }
+  }
+  

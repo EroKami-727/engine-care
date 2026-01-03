@@ -1,0 +1,35 @@
+.index-page {
+    min-height: 100vh;
+  }
+  
+  /* Models Section */
+  .models-section {
+    position: relative;
+  }
+  
+  .models-section::before {
+    content: '';
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 1px;
+    height: 100px;
+    background: linear-gradient(to bottom, transparent, var(--color-border));
+  }
+  
+  .models-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: var(--space-2xl);
+  }
+  
+  /* Responsive */
+  @media (max-width: 992px) {
+    .models-grid {
+      grid-template-columns: 1fr;
+      max-width: 600px;
+      margin: 0 auto;
+    }
+  }
+  

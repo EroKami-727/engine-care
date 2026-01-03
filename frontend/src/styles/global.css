@@ -1,0 +1,249 @@
+/* ============================================
+   GLOBAL STYLES
+   ============================================ */
+
+   @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Orbitron:wght@400;500;600;700;800;900&family=Space+Mono:wght@400;700&display=swap');
+
+   *,
+   *::before,
+   *::after {
+     box-sizing: border-box;
+     margin: 0;
+     padding: 0;
+   }
+   
+   html {
+     scroll-behavior: smooth;
+     font-size: 16px;
+   }
+   
+   body {
+     font-family: var(--font-body);
+     background-color: var(--color-blueprint-bg);
+     color: var(--color-text-primary);
+     line-height: 1.6;
+     overflow-x: hidden;
+     cursor: none;
+   }
+   
+   /* Blueprint Grid Background */
+   body::before {
+     content: '';
+     position: fixed;
+     inset: 0;
+     background-image: 
+       linear-gradient(var(--color-grid) 1px, transparent 1px),
+       linear-gradient(90deg, var(--color-grid) 1px, transparent 1px),
+       linear-gradient(var(--color-grid) 0.5px, transparent 0.5px),
+       linear-gradient(90deg, var(--color-grid) 0.5px, transparent 0.5px);
+     background-size: 
+       100px 100px,
+       100px 100px,
+       20px 20px,
+       20px 20px;
+     background-position: -1px -1px;
+     pointer-events: none;
+     z-index: -1;
+   }
+   
+   /* Selection */
+   ::selection {
+     background: var(--color-primary);
+     color: white;
+   }
+   
+   /* Scrollbar */
+   ::-webkit-scrollbar {
+     width: 8px;
+     height: 8px;
+   }
+   
+   ::-webkit-scrollbar-track {
+     background: var(--color-surface);
+   }
+   
+   ::-webkit-scrollbar-thumb {
+     background: var(--color-primary);
+     border-radius: 4px;
+   }
+   
+   ::-webkit-scrollbar-thumb:hover {
+     background: var(--color-primary-light);
+   }
+   
+   /* Typography */
+   h1, h2, h3, h4, h5, h6 {
+     font-family: var(--font-display);
+     font-weight: 700;
+     line-height: 1.2;
+     letter-spacing: 0.02em;
+   }
+   
+   h1 { font-size: clamp(2.5rem, 5vw, 4rem); }
+   h2 { font-size: clamp(2rem, 4vw, 3rem); }
+   h3 { font-size: clamp(1.5rem, 3vw, 2rem); }
+   h4 { font-size: clamp(1.25rem, 2vw, 1.5rem); }
+   
+   p {
+     font-family: var(--font-body);
+     color: var(--color-text-secondary);
+   }
+   
+   a {
+     color: var(--color-primary-light);
+     text-decoration: none;
+     transition: color var(--transition-fast);
+   }
+   
+   a:hover {
+     color: var(--color-accent);
+   }
+   
+   /* Container */
+   .container {
+     width: 100%;
+     max-width: 1400px;
+     margin: 0 auto;
+     padding: 0 var(--space-xl);
+   }
+   
+   /* Section */
+   .section {
+     padding: var(--space-3xl) 0;
+   }
+   
+   .section-header {
+     text-align: center;
+     margin-bottom: var(--space-3xl);
+   }
+   
+   .section-subtitle {
+     font-family: var(--font-body);
+     font-size: 0.875rem;
+     text-transform: uppercase;
+     letter-spacing: 0.2em;
+     color: var(--color-primary-light);
+     margin-bottom: var(--space-sm);
+     display: flex;
+     align-items: center;
+     justify-content: center;
+     gap: var(--space-sm);
+   }
+   
+   .section-subtitle::before,
+   .section-subtitle::after {
+     content: '';
+     width: 40px;
+     height: 1px;
+     background: linear-gradient(90deg, transparent, var(--color-primary), transparent);
+   }
+   
+   .section-title {
+     color: var(--color-text-primary);
+     margin-bottom: var(--space-md);
+   }
+   
+   .section-description {
+     max-width: 600px;
+     margin: 0 auto;
+     color: var(--color-text-secondary);
+   }
+   
+   /* Animations */
+   @keyframes fadeInUp {
+     from {
+       opacity: 0;
+       transform: translateY(30px);
+     }
+     to {
+       opacity: 1;
+       transform: translateY(0);
+     }
+   }
+   
+   @keyframes fadeIn {
+     from { opacity: 0; }
+     to { opacity: 1; }
+   }
+   
+   @keyframes pulse {
+     0%, 100% { opacity: 1; }
+     50% { opacity: 0.5; }
+   }
+   
+   @keyframes glow {
+     0%, 100% { box-shadow: 0 0 20px var(--color-primary-glow); }
+     50% { box-shadow: 0 0 40px var(--color-primary-glow), 0 0 60px var(--color-primary-glow); }
+   }
+   
+   @keyframes float {
+     0%, 100% { transform: translateY(0); }
+     50% { transform: translateY(-10px); }
+   }
+   
+   @keyframes scan {
+     0% { transform: translateY(-100%); }
+     100% { transform: translateY(100%); }
+   }
+   
+   @keyframes slideInRight {
+     from {
+       opacity: 0;
+       transform: translateX(50px);
+     }
+     to {
+       opacity: 1;
+       transform: translateX(0);
+     }
+   }
+   
+   @keyframes rotateIn {
+     from {
+       opacity: 0;
+       transform: rotate(-10deg) scale(0.9);
+     }
+     to {
+       opacity: 1;
+       transform: rotate(0) scale(1);
+     }
+   }
+   
+   /* Utility Classes */
+   .animate-fade-in-up {
+     animation: fadeInUp 0.6s ease forwards;
+   }
+   
+   .animate-fade-in {
+     animation: fadeIn 0.4s ease forwards;
+   }
+   
+   .animate-glow {
+     animation: glow 2s ease-in-out infinite;
+   }
+   
+   .animate-float {
+     animation: float 3s ease-in-out infinite;
+   }
+   
+   .animate-pulse {
+     animation: pulse 2s ease-in-out infinite;
+   }
+   
+   /* Staggered Animations */
+   .stagger-1 { animation-delay: 0.1s; }
+   .stagger-2 { animation-delay: 0.2s; }
+   .stagger-3 { animation-delay: 0.3s; }
+   .stagger-4 { animation-delay: 0.4s; }
+   .stagger-5 { animation-delay: 0.5s; }
+   .stagger-6 { animation-delay: 0.6s; }
+   
+   /* Hide cursor on elements with custom cursor */
+   body * {
+     cursor: none;
+   }
+   
+   /* Show cursor on interactive elements hint */
+   a, button, [role="button"], input, select, textarea {
+     cursor: none;
+   }
+   

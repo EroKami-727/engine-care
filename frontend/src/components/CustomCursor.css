@@ -1,0 +1,80 @@
+.cursor-dot,
+.cursor-ring {
+  position: fixed;
+  top: 0;
+  left: 0;
+  pointer-events: none;
+  z-index: var(--z-cursor);
+  will-change: transform;
+}
+
+.cursor-dot {
+  width: 8px;
+  height: 8px;
+  margin-left: -4px;
+  margin-top: -4px;
+  background: var(--color-primary);
+  border-radius: 50%;
+  transition: width 0.2s ease, height 0.2s ease, margin 0.2s ease, background 0.2s ease;
+}
+
+.cursor-dot.on-dark {
+  background: var(--color-accent);
+}
+
+.cursor-dot.hovering {
+  width: 12px;
+  height: 12px;
+  margin-left: -6px;
+  margin-top: -6px;
+  background: var(--color-accent);
+}
+
+.cursor-dot.clicking {
+  width: 6px;
+  height: 6px;
+  margin-left: -3px;
+  margin-top: -3px;
+}
+
+.cursor-ring {
+  width: 40px;
+  height: 40px;
+  margin-left: -20px;
+  margin-top: -20px;
+  border: 2px solid var(--color-primary);
+  border-radius: 50%;
+  opacity: 0.4;
+  transition: width 0.3s ease, height 0.3s ease, margin 0.3s ease, 
+              border-color 0.2s ease, opacity 0.2s ease, background 0.2s ease;
+}
+
+.cursor-ring.on-dark {
+  border-color: var(--color-accent);
+}
+
+.cursor-ring.hovering {
+  width: 60px;
+  height: 60px;
+  margin-left: -30px;
+  margin-top: -30px;
+  border-color: var(--color-accent);
+  opacity: 0.6;
+  background: rgba(6, 182, 212, 0.08);
+}
+
+.cursor-ring.clicking {
+  width: 32px;
+  height: 32px;
+  margin-left: -16px;
+  margin-top: -16px;
+  opacity: 0.8;
+}
+
+/* Hide on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  .cursor-dot,
+  .cursor-ring {
+    display: none;
+  }
+}
