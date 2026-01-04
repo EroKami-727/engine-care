@@ -1,6 +1,4 @@
 // API Service for FastAPI Backend Integration
-// Connects to your Python FastAPI backend for ML predictions
-
 const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000';
 
 export interface PredictionRequest {
@@ -19,20 +17,7 @@ export interface ComponentHealth {
 
 export interface SensorData {
   cycle: number;
-  sensor_2: number;
-  sensor_3: number;
-  sensor_4: number;
-  sensor_7: number;
-  sensor_8: number;
-  sensor_9: number;
-  sensor_11: number;
-  sensor_12: number;
-  sensor_13: number;
-  sensor_14: number;
-  sensor_15: number;
-  sensor_17: number;
-  sensor_20: number;
-  sensor_21: number;
+  [key: string]: number;
 }
 
 export interface DegradationTrend {
@@ -49,11 +34,8 @@ export interface PredictionResult {
   degradationVelocity: 'Low' | 'Moderate' | 'High';
   sensorHistory: SensorData[];
   degradationTrends: DegradationTrend[];
-}
-
-export interface APIError {
-  message: string;
-  code: string;
+  systemVolatility: number;
+  modelName: string;
 }
 
 class EngineAPIService {
@@ -63,111 +45,149 @@ class EngineAPIService {
     this.baseUrl = baseUrl;
   }
 
-  async predict(request: PredictionRequest): Promise<PredictionResult> {
-    const formData = new FormData();
-    formData.append('file', request.file);
-    formData.append('model_id', request.modelId);
+  private async parseFile(file: File): Promise<number[][]> {
+    const text = await file.text();
+    const rows = text.trim().split('\n').map(row => 
+      row.trim().split(/\s+/).map(Number)
+    );
+    if (rows.length < 50) throw new Error(`File too short! Need 50+ cycles.`);
+    return rows.slice(-50);
+  }
 
+  private mapToSensorHistory(rawRows: number[][]): SensorData[] {
+    return rawRows.map((row, index) => {
+      const data: any = { cycle: index + 1 };
+      // Map columns [Op1..3, S1..21]
+      data.sensor_2 = row[3] || 0;
+      data.sensor_7 = row[8] || 0;
+      data.sensor_11 = row[12] || 0;
+      data.sensor_21 = row[22] || 0;
+      return data as SensorData;
+    });
+  }
+
+  async predict(request: PredictionRequest): Promise<PredictionResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/predict`, {
+      const rawRows = await this.parseFile(request.file);
+      const inferenceData = rawRows.map(row => row.slice(2, 26));
+
+      const response = await fetch(`${this.baseUrl}/predict/jet-engine`, {
         method: 'POST',
-        body: formData,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ data: inferenceData }),
       });
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || 'Prediction failed');
+      if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
+
+      const apiData = await response.json();
+
+      // --- MAPPING ---
+      const rawHealth = apiData.component_health;
+      const healthScores: ComponentHealth = {
+        fan: rawHealth.Fan || 0,
+        lpc: rawHealth.LPC || 0,
+        hpc: rawHealth.HPC || 0,
+        combustor: rawHealth.Combustor || 0,
+        hpt: rawHealth.HPT || 0,
+        lpt: rawHealth.LPT || 0,
+      };
+
+      const sensorHistory = this.mapToSensorHistory(inferenceData);
+      
+      // --- IMPROVED TREND GENERATION ---
+      // Instead of a straight line, we simulate a non-linear degradation curve
+      // extending from "Now" (Cycle 0 relative) to "Failure" (Cycle RUL)
+      const degradationTrends: DegradationTrend[] = [];
+      const totalRul = Math.floor(apiData.prediction.rul);
+      
+      // Generate 20 points spanning the future RUL for a smooth curve
+      const steps = 20;
+      const stepSize = totalRul / steps;
+
+      for(let i = 0; i <= steps; i++) {
+        const currentCycle = Math.floor(i * stepSize);
+        // Exponential decay simulation: Health drops faster near the end
+        const progress = i / steps;
+        const decayFactor = Math.pow(progress, 1.5); // Curve the line
+        const simulatedHealth = Math.max(0, 100 - (100 * decayFactor));
+        
+        degradationTrends.push({
+            cycle: currentCycle,
+            healthIndex: Number(simulatedHealth.toFixed(1)),
+            predictedRul: Math.max(0, totalRul - currentCycle)
+        });
       }
 
-      return await response.json();
+      return {
+        rul: totalRul,
+        confidence: 95, 
+        riskLevel: apiData.prediction.risk_level, 
+        healthScores: healthScores,
+        degradationVelocity: apiData.prediction.system_volatility > 20 ? 'High' : 'Low',
+        sensorHistory: sensorHistory,
+        degradationTrends: degradationTrends,
+        systemVolatility: apiData.prediction.system_volatility,
+        modelName: apiData.prediction.confidence
+      };
+
     } catch (error) {
-      console.error('API Error:', error);
+      console.error('API Pipeline Failed:', error);
       throw error;
     }
   }
 
-  async healthCheck(): Promise<boolean> {
-    try {
-      const response = await fetch(`${this.baseUrl}/health`);
-      return response.ok;
-    } catch {
-      return false;
-    }
-  }
-
-  async getModels(): Promise<{ id: string; name: string; description: string }[]> {
-    try {
-      const response = await fetch(`${this.baseUrl}/models`);
-      if (!response.ok) throw new Error('Failed to fetch models');
-      return await response.json();
-    } catch (error) {
-      console.error('Failed to fetch models:', error);
-      return [];
-    }
-  }
-
-  // Generate mock data for demo when API is not available
+  // Mock for Fallback
   generateMockPrediction(modelId: string): PredictionResult {
-    const baseRul = Math.floor(Math.random() * 80) + 20;
-    const confidence = Math.floor(Math.random() * 15) + 80;
-    
-    const healthScores: ComponentHealth = {
-      fan: Math.floor(Math.random() * 15) + 85,
-      lpc: Math.floor(Math.random() * 20) + 75,
-      hpc: Math.floor(Math.random() * 30) + 60,
-      combustor: Math.floor(Math.random() * 15) + 80,
-      hpt: Math.floor(Math.random() * 25) + 70,
-      lpt: Math.floor(Math.random() * 20) + 75,
-    };
-
-    const avgHealth = Object.values(healthScores).reduce((a, b) => a + b, 0) / 6;
-    let riskLevel: 'Safe' | 'Warning' | 'Critical' = 'Safe';
-    if (avgHealth < 70) riskLevel = 'Critical';
-    else if (avgHealth < 80) riskLevel = 'Warning';
-
-    // Generate sensor history data
+    // Generate 50 cycles of fake history
     const sensorHistory: SensorData[] = [];
+    const degradationTrends: DegradationTrend[] = [];
+    
+    // Starting values
+    let temp = 1540; 
+    let press = 550; 
+    let rpm = 2380;  
+    let margin = 20; 
+
     for (let i = 0; i < 50; i++) {
+      temp += (Math.random() - 0.4) * 2; 
+      press += (Math.random() - 0.6) * 0.5;
+      rpm += (Math.random() - 0.5) * 1.5;
+      margin -= 0.1; 
+
       sensorHistory.push({
         cycle: i + 1,
-        sensor_2: 641.82 + Math.random() * 2 - 1,
-        sensor_3: 1589.7 + Math.random() * 10 - 5,
-        sensor_4: 1400.6 + Math.random() * 8 - 4,
-        sensor_7: 553.75 + Math.random() * 5 - 2.5,
-        sensor_8: 2388.0 + Math.random() * 10 - 5,
-        sensor_9: 9046.19 + Math.random() * 20 - 10,
-        sensor_11: 47.47 + Math.random() * 0.5 - 0.25,
-        sensor_12: 521.66 + Math.random() * 5 - 2.5,
-        sensor_13: 2388.02 + Math.random() * 10 - 5,
-        sensor_14: 8138.62 + Math.random() * 30 - 15,
-        sensor_15: 8.4195 + Math.random() * 0.05 - 0.025,
-        sensor_17: 392 + Math.random() * 2 - 1,
-        sensor_20: 39.06 + Math.random() * 0.5 - 0.25,
-        sensor_21: 23.419 + Math.random() * 0.2 - 0.1,
+        sensor_2: 642 + (Math.random() * 0.5), 
+        sensor_7: press,                       
+        sensor_11: rpm,                        
+        sensor_21: margin                      
       });
-    }
 
-    // Generate degradation trends
-    const degradationTrends: DegradationTrend[] = [];
-    let healthIndex = 100;
-    for (let i = 0; i < 100; i++) {
-      const decay = 0.3 + Math.random() * 0.2;
-      healthIndex = Math.max(0, healthIndex - decay);
+      const decay = Math.pow((i / 50), 2) * 10;
       degradationTrends.push({
         cycle: i + 1,
-        healthIndex: Math.round(healthIndex * 100) / 100,
-        predictedRul: Math.max(0, baseRul - Math.floor(i * 0.5)),
+        healthIndex: Math.max(0, 100 - (i * 0.2)),
+        predictedRul: Math.max(0, 125 - i - decay)
       });
     }
 
     return {
-      rul: baseRul,
-      confidence,
-      riskLevel,
-      healthScores,
-      degradationVelocity: avgHealth > 80 ? 'Low' : avgHealth > 70 ? 'Moderate' : 'High',
-      sensorHistory,
-      degradationTrends,
+      rul: 85,
+      confidence: 80,
+      riskLevel: 'Safe',
+      // FIX: Use lowercase keys here to match ComponentHealth interface
+      healthScores: { 
+        fan: 90, 
+        lpc: 88, 
+        hpc: 85, 
+        combustor: 92, 
+        hpt: 89, 
+        lpt: 87 
+      },
+      degradationVelocity: 'Low',
+      sensorHistory: sensorHistory,
+      degradationTrends: degradationTrends,
+      systemVolatility: 5.0,
+      modelName: "Demo Model (Simulation)"
     };
   }
 }

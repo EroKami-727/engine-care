@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
 import CustomCursor from '../components/CustomCursor';
@@ -14,13 +14,14 @@ interface LocationState {
   file?: File;
 }
 
+// TUNED TIMINGS: Total ~3000ms (3 seconds)
 const loadingPhases = [
-  { id: 1, label: 'Connecting to server...', duration: 1500 },
-  { id: 2, label: 'Waking ML worker...', duration: 2000 },
-  { id: 3, label: 'Processing dataset...', duration: 2500 },
-  { id: 4, label: 'Running inference...', duration: 2000 },
-  { id: 5, label: 'Calculating health scores...', duration: 1500 },
-  { id: 6, label: 'Generating report...', duration: 1000 },
+  { id: 1, label: 'Connecting to server...', duration: 600 },
+  { id: 2, label: 'Waking ML worker...', duration: 800 },
+  { id: 3, label: 'Processing dataset...', duration: 600 },
+  { id: 4, label: 'Running inference...', duration: 500 },
+  { id: 5, label: 'Calculating health scores...', duration: 400 },
+  { id: 6, label: 'Generating report...', duration: 300 },
 ];
 
 const Results: React.FC = () => {
@@ -31,53 +32,71 @@ const Results: React.FC = () => {
 
   const [currentPhase, setCurrentPhase] = useState(0);
   const [progress, setProgress] = useState(0);
-  const [isComplete, setIsComplete] = useState(false);
   const [showResults, setShowResults] = useState(false);
   const [results, setResults] = useState<PredictionResult | null>(null);
   const [apiError, setApiError] = useState<string | null>(null);
   const [isUsingMockData, setIsUsingMockData] = useState(false);
+  
+  const apiCallStarted = useRef(false);
 
-  // Model data from state or default
   const model = state?.model || {
     id: modelId || 'rul-predictor',
-    name: 'RUL Predictor',
-    algorithm: 'LSTM Neural Network',
-    predicts: 'Remaining Useful Life (Cycles)',
-    badge: 'LSTM'
+    name: 'Transformer v1',
+    algorithm: 'Multi-Head Attention',
+    predicts: 'RUL (Cycles)',
+    badge: 'SOTA'
   };
 
-  const fetchPrediction = useCallback(async () => {
-    if (state?.file) {
-      try {
-        const apiResult = await engineAPI.predict({
-          file: state.file,
-          modelId: model.id,
-        });
-        setResults(apiResult);
-      } catch (error) {
-        console.warn('API not available, using mock data:', error);
-        setApiError('API not available - showing demo results');
+  const getRiskColor = (level: string) => {
+    // Safety Check: handle undefined/null
+    if (!level) return 'var(--color-primary)';
+    switch (level.toLowerCase()) {
+      case 'safe': return 'var(--color-success)';
+      case 'warning': return 'var(--color-warning)';
+      case 'critical': return 'var(--color-danger)';
+      default: return 'var(--color-primary)';
+    }
+  };
+
+  // 1. START API CALL
+  useEffect(() => {
+    if (apiCallStarted.current) return;
+    apiCallStarted.current = true;
+
+    const performPrediction = async () => {
+      if (state?.file) {
+        try {
+          const apiResult = await engineAPI.predict({
+            file: state.file,
+            modelId: model.id,
+          });
+          setResults(apiResult);
+        } catch (error) {
+          console.warn('API Error:', error);
+          setApiError('API not available - showing demo results');
+          setIsUsingMockData(true);
+          setResults(engineAPI.generateMockPrediction(model.id));
+        }
+      } else {
         setIsUsingMockData(true);
         setResults(engineAPI.generateMockPrediction(model.id));
       }
-    } else {
-      // No file provided, use mock data
-      setIsUsingMockData(true);
-      setResults(engineAPI.generateMockPrediction(model.id));
-    }
-  }, [model.id, state?.file]);
+    };
 
+    performPrediction();
+  }, [state?.file, model.id]);
+
+  // 2. RUN ANIMATION
   useEffect(() => {
     let totalDuration = 0;
     loadingPhases.forEach(phase => totalDuration += phase.duration);
     
     let elapsedTime = 0;
     const interval = setInterval(() => {
-      elapsedTime += 100;
+      elapsedTime += 50; // Faster tick
       const progressPercent = Math.min((elapsedTime / totalDuration) * 100, 100);
       setProgress(progressPercent);
 
-      // Calculate current phase
       let accumulatedTime = 0;
       for (let i = 0; i < loadingPhases.length; i++) {
         accumulatedTime += loadingPhases[i].duration;
@@ -92,43 +111,21 @@ const Results: React.FC = () => {
 
       if (progressPercent >= 100) {
         clearInterval(interval);
-        setIsComplete(true);
-        fetchPrediction().then(() => {
-          setTimeout(() => setShowResults(true), 500);
-        });
+        // Ensure API is ready before showing
+        const checkResults = setInterval(() => {
+            if (results) {
+                clearInterval(checkResults);
+                setTimeout(() => setShowResults(true), 300);
+            }
+        }, 100); 
       }
-    }, 100);
+    }, 50);
 
     return () => clearInterval(interval);
-  }, [fetchPrediction]);
-
-  const getRiskColor = (level: string) => {
-    switch (level.toLowerCase()) {
-      case 'safe': return 'var(--color-success)';
-      case 'warning': return 'var(--color-warning)';
-      case 'critical': return 'var(--color-danger)';
-      default: return 'var(--color-primary)';
-    }
-  };
+  }, [results]);
 
   if (!results && showResults) {
-    return (
-      <div className="results-page">
-        <CustomCursor />
-        <Header showBack />
-        <main className="results-main">
-          <div className="container">
-            <div className="error-container">
-              <h2>Unable to load results</h2>
-              <p>Please try again or use a different model.</p>
-              <button className="btn btn-primary" onClick={() => navigate('/')}>
-                Go Back
-              </button>
-            </div>
-          </div>
-        </main>
-      </div>
-    );
+    return <div className="results-page">Loading...</div>;
   }
 
   return (
@@ -139,7 +136,7 @@ const Results: React.FC = () => {
       <main className="results-main">
         <div className="container">
           {!showResults ? (
-            <div className={`loading-container ${isComplete ? 'fade-out' : ''}`}>
+            <div className="loading-container">
               <div className="loading-visual">
                 <div className="loading-ring">
                   <div className="loading-ring-inner"></div>
@@ -183,11 +180,7 @@ const Results: React.FC = () => {
             <div className="results-container animate-fade-in-up">
               {(apiError || isUsingMockData) && (
                 <div className="demo-banner">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="10"/>
-                    <path d="M12 16v-4M12 8h.01"/>
-                  </svg>
-                  <span>Demo Mode: Showing simulated results. Connect your FastAPI backend for live predictions.</span>
+                  <span>Demo Mode: API Error.</span>
                 </div>
               )}
 
@@ -198,7 +191,7 @@ const Results: React.FC = () => {
                 </div>
                 <h1 className="results-title">Analysis Complete</h1>
                 <p className="results-subtitle">
-                  {model.name} • {model.algorithm}
+                  {results.modelName}
                 </p>
               </div>
 
@@ -207,7 +200,7 @@ const Results: React.FC = () => {
                 <div className="primary-result">
                   <span className="result-label">Predicted Remaining Useful Life</span>
                   <div className="result-value-large">
-                    <span className="value-number">{results.rul}</span>
+                    <span className="value-number">{Math.floor(results.rul)}</span>
                     <span className="value-unit">Cycles</span>
                   </div>
                   <div className="confidence-bar">
@@ -232,22 +225,16 @@ const Results: React.FC = () => {
                     </span>
                   </div>
                   <div className="metric-card">
-                    <span className="metric-label">Degradation Velocity</span>
-                    <span className="metric-value">{results.degradationVelocity}</span>
+                    <span className="metric-label">Volatility</span>
+                    <span className="metric-value">{results.systemVolatility?.toFixed(2) || "N/A"}</span>
                   </div>
                 </div>
               </div>
 
               {/* Interactive Engine Diagram */}
               <div className="section-header">
-                <h2>
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                    <circle cx="12" cy="12" r="3"/>
-                    <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42"/>
-                  </svg>
-                  Interactive Engine Diagram
-                </h2>
-                <span className="section-subtitle">Hover over components to view detailed sensor data and health metrics</span>
+                <h2>Interactive Engine Diagram</h2>
+                <span className="section-subtitle">Hover over components to view detailed sensor data</span>
               </div>
               <InteractiveEngine healthScores={results.healthScores} />
 
@@ -257,7 +244,7 @@ const Results: React.FC = () => {
                 degradationTrends={results.degradationTrends} 
               />
 
-              {/* Interpretation Section */}
+              {/* --- RESTORED INTERPRETATION SECTION --- */}
               <div className="interpretation-section">
                 <h3>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -274,8 +261,7 @@ const Results: React.FC = () => {
                   </p>
                   <p>
                     The current risk level is classified as <strong style={{ color: getRiskColor(results.riskLevel) }}>
-                    {results.riskLevel}</strong>. The High-Pressure Compressor (HPC) shows the lowest health score 
-                    at {results.healthScores.hpc}%, indicating this component should be prioritized for inspection.
+                    {results.riskLevel}</strong>. The <strong className="text-white">Fan Module</strong> shows the highest stability, while downstream components may require inspection.
                   </p>
                   <p>
                     With a <strong>{results.degradationVelocity.toLowerCase()}</strong> degradation velocity, 
@@ -285,6 +271,7 @@ const Results: React.FC = () => {
                 </div>
               </div>
 
+              {/* --- RESTORED ACTIONS --- */}
               <div className="results-actions">
                 <button className="btn btn-secondary">
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -312,6 +299,7 @@ const Results: React.FC = () => {
                   Create My Own Dataset
                 </button>
               </div>
+
             </div>
           )}
         </div>
