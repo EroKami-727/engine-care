@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
+import Footer from '../components/Footer'; // Import Footer
 import CustomCursor from '../components/CustomCursor';
 import InteractiveEngine from '../components/InteractiveEngine';
 import SensorCharts from '../components/SensorCharts';
@@ -14,7 +15,6 @@ interface LocationState {
   file?: File;
 }
 
-// TUNED TIMINGS: Total ~3000ms (3 seconds)
 const loadingPhases = [
   { id: 1, label: 'Connecting to server...', duration: 600 },
   { id: 2, label: 'Waking ML worker...', duration: 800 },
@@ -48,7 +48,6 @@ const Results: React.FC = () => {
   };
 
   const getRiskColor = (level: string) => {
-    // Safety Check: handle undefined/null
     if (!level) return 'var(--color-primary)';
     switch (level.toLowerCase()) {
       case 'safe': return 'var(--color-success)';
@@ -93,7 +92,7 @@ const Results: React.FC = () => {
     
     let elapsedTime = 0;
     const interval = setInterval(() => {
-      elapsedTime += 50; // Faster tick
+      elapsedTime += 50; 
       const progressPercent = Math.min((elapsedTime / totalDuration) * 100, 100);
       setProgress(progressPercent);
 
@@ -111,7 +110,6 @@ const Results: React.FC = () => {
 
       if (progressPercent >= 100) {
         clearInterval(interval);
-        // Ensure API is ready before showing
         const checkResults = setInterval(() => {
             if (results) {
                 clearInterval(checkResults);
@@ -244,7 +242,7 @@ const Results: React.FC = () => {
                 degradationTrends={results.degradationTrends} 
               />
 
-              {/* --- RESTORED INTERPRETATION SECTION --- */}
+              {/* Interpretation Section */}
               <div className="interpretation-section">
                 <h3>
                   <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -271,9 +269,9 @@ const Results: React.FC = () => {
                 </div>
               </div>
 
-              {/* --- RESTORED ACTIONS --- */}
+              {/* Actions - No animation to ensure visibility */}
               <div className="results-actions">
-                <button className="btn btn-secondary">
+                <button className="btn btn-secondary" onClick={() => window.open('https://github.com/EroKami-727/engine-care', '_blank')}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M16 18l6-6-6-6M8 6l-6 6 6 6"/>
                   </svg>
@@ -287,16 +285,16 @@ const Results: React.FC = () => {
                     <polyline points="1 4 1 10 7 10"/>
                     <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
                   </svg>
-                  Use Different Engine
+                  Analyze Another Engine
                 </button>
-                <button className="btn btn-secondary">
+                <button className="btn btn-secondary" onClick={() => window.open('https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/', '_blank')}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                     <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                     <polyline points="14 2 14 8 20 8"/>
                     <line x1="16" y1="13" x2="8" y2="13"/>
                     <line x1="16" y1="17" x2="8" y2="17"/>
                   </svg>
-                  Create My Own Dataset
+                  Get Test Data
                 </button>
               </div>
 
@@ -304,6 +302,9 @@ const Results: React.FC = () => {
           )}
         </div>
       </main>
+      
+      {/* Footer added here */}
+      <Footer />
     </div>
   );
 };

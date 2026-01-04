@@ -92,3 +92,15 @@
     }
   }
   
+  /* Add these at the bottom */
+
+.hidden-section {
+  opacity: 0;
+  transform: translateY(40px);
+  transition: opacity 0.8s ease-out, transform 0.8s ease-out;
+}
+
+.animate-in {
+  opacity: 1;
+  transform: translateY(0);
+}

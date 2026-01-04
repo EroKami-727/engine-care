@@ -9,10 +9,10 @@
 }
 
 .cursor-dot {
-  width: 8px;
-  height: 8px;
-  margin-left: -4px;
-  margin-top: -4px;
+  width: 20px;
+  height: 20px;
+  margin-left: -10px;
+  margin-top: -10px;
   background: var(--color-primary);
   border-radius: 50%;
   transition: width 0.2s ease, height 0.2s ease, margin 0.2s ease, background 0.2s ease;
