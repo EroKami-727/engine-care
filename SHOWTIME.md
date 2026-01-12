@@ -1,78 +1,83 @@
-# Showtime: A Step-by-Step Demo Guide
+# Demonstration Procedure
 
-This guide provides the steps to run a live demonstration of the EngineCare project.
+This document outlines the standard procedure for presenting the EngineCare platform. It covers environment preparation, service initialization, and the demonstration workflow.
 
-## Part 1: The "Permanent URL" Fix
+## 1. Environment Preparation
 
-To ensure the deployed frontend can consistently communicate with your local backend, you need a static URL from Ngrok.
+Ensure the following pre-requisites are met before starting the demonstration:
 
-### Claim your Static Domain:
-
-1.  Go to [dashboard.ngrok.com](https://dashboard.ngrok.com).
-2.  Click **+ Create Domain**.
-3.  Ngrok will provide a static domain, for example: `grizzly-heroic-pigeon.ngrok-free.app`.
-
-### Update Frontend (One last time):
-
-1.  Open `frontend/src/App.tsx`.
-2.  Set the `API_URL` constant to your new static domain:
-
-    ```typescript
-    const API_URL = "https://grizzly-heroic-pigeon.ngrok-free.app";
+*   **Docker Daemon:** Running and accessible.
+*   **Worker Image:** The inference container image must be built.
+    ```bash
+    cd workers/jet-engine
+    docker build -t engine-care-worker .
     ```
 
-3.  Deploy to Vercel by pushing your changes to GitHub. Vercel will now always use this static link.
+## 2. Service Initialization
 
-## Part 2: The "Showtime" Pipeline
+Open three terminal windows to manage the services and monitor the system state.
 
-This is the routine for starting the backend services. You will need three terminal tabs. No need to open a code editor.
-
-**Pre-requisite:** Boot up your laptop.
-
-### Terminal 1: The Brain (Manager)
-
-This runs the Python script that listens for and manages requests.
+### Terminal A: Backend Manager (Orchestrator)
+This service manages the lifecycle of the inference workers.
 
 ```bash
-# 1. Activate the environment
-source ~/Coding/venvs/enginecare/bin/activate.fish
+# Activate your Python virtual environment if applicable
+# source venv/bin/activate
 
-# 2. Run the Manager
-python ~/Coding/Projects/EngineCare/backend/manager.py
+cd backend
+python manager.py
 ```
+*Expected Output:* The manager logs startup information and listens on port 8000.
 
-### Terminal 2: The Bridge (Ngrok)
-
-This connects your local backend to the public, static URL.
+### Terminal B: Frontend (Dashboard)
+This serves the user interface.
 
 ```bash
-# Use the --domain flag with your static name!
-ngrok http --domain=grizzly-heroic-pigeon.ngrok-free.app 8000
+cd frontend
+npm run dev
 ```
+*Expected Output:* Vite server starts, typically at `http://localhost:5173`.
 
-> **Note:** Make sure the output says "Forwarding... -> localhost:8000".
-
-### Terminal 3: The Proof (Docker Watch)
-
-This terminal is for demonstrating the dynamic scaling of worker instances.
+### Terminal C: System Monitor (Docker Watch)
+Use this terminal to visually demonstrate the dynamic scaling of resources.
 
 ```bash
 watch docker ps
 ```
+*Expected Output:* Initially empty (no worker containers running).
 
-## Part 3: The Demo Flow
+## 3. Demonstration Workflow
 
-1.  **Show the Empty Terminal:** Point to Terminal 3 and say, "Look, no servers running. 0 RAM usage."
+### Step 1: Zero-Ops State
+*   **Action:** Show Terminal C.
+*   **Narrative:** "The system is currently in a 'Zero-Ops' state. No heavy inference resources are active, ensuring zero idle cost."
 
-2.  **Open the Website:** Open your Vercel link (e.g., `engine-care.vercel.app`) on your phone or another laptop.
+### Step 2: Diagnostic Request
+*   **Action:** Open the web dashboard (`http://localhost:5173`).
+*   **Action:** Click **"Run Diagnostics"** and upload a test file (e.g., `data/test_FD001.txt`).
+*   **Observation:**
+    *   **Terminal A:** Shows the manager receiving the request and initiating a "Cold Start".
+    *   **Terminal C:** A new container (`engine-worker`) appears instantly.
+    *   **Dashboard:** Displays the processing status.
 
-3.  **Upload File:** Click "Run Diagnostics" and upload a relevant data file.
+### Step 3: Analysis & Visualization
+*   **Action:** Walk through the results on the dashboard.
+    *   **RUL Prediction:** Point out the estimated remaining useful life.
+    *   **Regime Detection:** Highlight which model (Steady vs. Complex) was selected.
+    *   **Component Health:** Hover over the engine schematic to show specific component scores (Fan, HPC, etc.).
 
-4.  **The Magic:**
-    *   **Terminal 1** will show scrolling text: `Receiving request... Waking Worker...`
-    *   **Terminal 3** will suddenly show a new container: `engine-worker-instance Up 2 seconds`.
-    *   The **Website** will display the result: `Predicted RUL: 16 Cycles`.
+### Step 4: Scale Down
+*   **Action:** Return to Terminal C.
+*   **Narrative:** "After the analysis is complete and a period of inactivity passes (default: 5 minutes), the manager automatically terminates the worker."
+*   **Observation:** The container disappears from the `docker ps` list.
 
-5.  **The Drop:** Continue talking for about 5 minutes.
+---
 
-6.  **The Finale:** After the worker has been idle, it will shut down. The container will vanish from the list in **Terminal 3**. You can then say, "And now it scaled to zero to save costs."
+## Appendix: Remote Access (Optional)
+If presenting from a mobile device or external network, use **ngrok** to tunnel the backend.
+
+1.  Start ngrok pointing to the backend port:
+    ```bash
+    ngrok http 8000
+    ```
+2.  Update the frontend configuration (`frontend/.env` or equivalent) to point to the generated ngrok URL before building/serving.

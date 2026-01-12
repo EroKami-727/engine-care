@@ -170,3 +170,8 @@ async def proxy_prediction(request: Request):
     except Exception as e:
         log_event("NETWORK ERROR", str(e), "error")
         raise HTTPException(status_code=502)
+
+if __name__ == "__main__":
+    import uvicorn
+    console.print("[bold green]Starting EngineCare Manager...[/]")
+    uvicorn.run("manager:app", host="0.0.0.0", port=8000, reload=True)

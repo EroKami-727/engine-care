@@ -1,109 +1,69 @@
-# PROJECT MANIFEST: EngineCare (Aero-Prophet)
+# System Design Specification: EngineCare
 
-**Role:** Senior Full-Stack & Data Science Portfolio Project
-**Objective:** Predictive Maintenance (PdM) Dashboard for NASA Turbofan Engines.
-**Core Philosophy:** "Zero-Ops" (Serverless on Localhost) with Graceful Degradation.
+**Project:** EngineCare (Predictive Maintenance Platform)
+**Version:** 2.0
+**Domain:** Industrial IoT / Aerospace
 
-### Reference Links
-*   **GitHub Repository:** [https://github.com/EroKami-727/engine-care](https://github.com/EroKami-727/engine-care)
-*   **Dataset (NASA C-MAPSS):** [NASA PCoE Data Set Repository (Dataset #6)](https://www.nasa.gov/intelligent-systems-division/discovery-and-systems-health/pcoe/pcoe-data-set-repository/)
+## 1. Project Overview
 
----
+EngineCare is a full-stack predictive maintenance (PdM) solution designed for high-value industrial assets, specifically turbofan engines. The system aims to replace traditional "run-to-failure" or schedule-based maintenance strategies with data-driven "condition-based" maintenance.
 
-## 1. DATA SCIENCE PIPELINE ("The Brain")
-**Goal:** Move from simple Regression to rich, interpretable Diagnostics.
+The core objective is to accurately estimate the Remaining Useful Life (RUL) of an engine using deep learning, while providing granular insights into the health of individual subsystems (Fan, Compressor, Turbine).
 
-### A. Algorithm Upgrade
-*   **Transition to LSTM (Long Short-Term Memory):** Move away from Random Forest. The model must handle time-series "windows" (e.g., last 50 cycles) to understand degradation trends, not just instantaneous values.
-*   **Uncertainty Quantification:** The model will output a **Predicted RUL** *and* a **Confidence Score** (e.g., "75 cycles left, with 85% confidence").
-    *   *Method:* Use Dropout at inference time (Monte Carlo Dropout) or Quantile Regression to estimate variance.
+## 2. Architectural Design
 
-### B. Derived Metrics (Beyond RUL)
-We will extract maximum metadata from the C-MAPSS dataset to populate the UI.
-1.  **Component Health Scores (0-100%):** Calculated via Z-Score deviation from the baseline (Cycle 0-10) for specific sensors.
-2.  **Current Risk Level:** Categorical status based on RUL and Rate of Change (Safe, Warning, Critical).
-3.  **Degradation Velocity:** Is the engine failing slowly (linear) or rapidly (exponential)? Calculated via the slope of the last 10 data points.
+The system implements a **Three-Tier Architecture** focused on resource efficiency and modularity.
 
-### C. Advanced Sensor-to-Component Mapping (For SVG)
-To be used for coloring the blueprint parts:
-*   **Fan Module:** Sensors 1, 2 (Inlet Temp/Pres), 5 (Pressure).
-*   **Low-Pressure Compressor (LPC):** Derived from correlation (or specific subset if available).
-*   **High-Pressure Compressor (HPC):** Sensors 3, 7 (Outlet Temp/Pres), 17.
-*   **Combustor (Burner):** Sensor 12 (Ratio), 14, 15 (Bypass/Bleed).
-*   **Low-Pressure Turbine (LPT):** Sensor 4 (Outlet Temp), 18.
-*   **High-Pressure Turbine (HPT):** Sensor 21.
+### 2.1. The "Zero-Ops" Orchestrator (Backend)
+*   **Role:** Acts as a lightweight gateway and resource manager.
+*   **Implementation:** Python (FastAPI) + Docker SDK.
+*   **Behavior:**
+    *   Maintains a low footprint (~20MB RAM) when idle.
+    *   Interceps incoming prediction requests.
+    *   **Cold Start:** Dynamically provisions a Docker container for the inference worker if one is not active.
+    *   **Scale-to-Zero:** Monitors container activity and terminates instances after a configurable timeout (default: 300s).
 
----
+### 2.2. The Inference Engine (Worker)
+*   **Role:** Performs heavy computation, signal processing, and AI inference.
+*   **Implementation:** TensorFlow/Keras within a Docker container.
+*   **Regime-Aware Logic:**
+    *   Analyzes input sensor data to detect the operating regime (Steady-State vs. High-Load/Complex).
+    *   Dynamically routes data to the appropriate specialized LSTM model (`model_regime_A` or `model_regime_B`).
 
-## 2. FRONTEND VISUALIZATION ("The Wow Factor")
-**Stack:** React + Vite + Recharts + Vanilla CSS (Glassmorphism).
+### 2.3. The Interactive Dashboard (Frontend)
+*   **Role:** User interface for engineers and maintenance personnel.
+*   **Implementation:** React, TypeScript, Vite.
+*   **Key Capabilities:**
+    *   **Client-Side Parsing:** Pre-processes raw CMAPSS data files to reduce payload size.
+    *   **Visual Twin:** Renders a schematic representation of the engine, mapping health scores to color-coded visual indicators on the blueprint.
+    *   **Offline Simulation:** Includes a mock data generator to enable feature demonstration in the absence of backend connectivity.
 
-### A. Interactive SVG Digital Twin
-*   **Structure:** A 2D "Cutaway" technical illustration of a generic Turbofan engine.
-*   **Dynamic Styling:** SVG groups (`<g id="fan">`) will bind to the **Component Health Scores**.
-    *   *Visuals:* Color shift (Green -> Yellow -> Red) + CSS Glow/Pulse animations for "Critical" components.
-*   **Interactivity:** Hovering over an engine part displays a tooltip with that specific component's raw sensor metrics (e.g., "Fan Speed: 2388 rpm").
+## 3. Data Science Pipeline
 
-### B. "Time-Travel" Simulation (Video Mode)
-*   **Logic:** The API returns the *entire* relevant history of the engine (e.g., Cycle 0 to Current).
-*   **Rendering:** The Frontend does not render the graph instantly.
-*   **Adaptive Interval:**
-    *   Target Duration: ~4 seconds.
-    *   Math: `Interval_ms = 4000 / Total_History_Points`.
-    *   Result: Whether the engine has 50 cycles or 200 cycles of history, the "playback" animation always takes ~4 seconds to draw, creating a consistent "cinematic" feel.
+The analytical core utilizes the NASA C-MAPSS (Commercial Modular Aero-Propulsion System Simulation) dataset.
 
-### C. Graceful Degradation (Offline Portfolio Mode)
-**Problem:** Local laptop server is offline/sleeping.
-**Solution:**
-1.  **Request:** Frontend attempts to hit Ngrok/Localhost.
-2.  **Failure:** Request times out or returns 404/500.
-3.  **Interaction:**
-    *   UI catches error.
-    *   **Modal Pop-up:** "Server Connection Failed (Engine Offline). Would you like to run a Simulation?"
-    *   **Action:** If user clicks "Yes", load a pre-saved `mock_response.json` (captured from a real successful run).
-    *   **UI Indicator:** Display a "DEMO MODE" badge in the corner so users know this is simulated.
+### 3.1. RUL Estimation
+*   **Model Architecture:** Long Short-Term Memory (LSTM) networks.
+*   **Input Window:** 50-cycle lookback period.
+*   **Output:** Continuous variable representing the predicted Remaining Useful Life (cycles).
 
----
+### 3.2. Health Index Derivation
+Beyond a single RUL number, the system calculates granular health metrics for key components by analyzing specific sensor clusters:
+*   **Fan Module:** Correlated with Inlet Temperature/Pressure sensors.
+*   **High-Pressure Compressor (HPC):** Derived from Outlet Temperature/Pressure deviations.
+*   **Combustor:** Analyzed via Fuel-Air Ratio and Bypass metrics.
+*   **Turbines (LPT/HPT):** Monitored via downstream Exhaust Gas Temperature (EGT) profiles.
 
-## 3. BACKEND ARCHITECTURE ("The Scalable Skeleton")
-**Stack:** Python FastAPI (Manager) + Docker (Worker).
+## 4. Technical Roadmap
 
-### A. The "Manager" (Router Pattern)
-*   Refactor `manager.py` to remove hardcoded jet-engine logic.
-*   **Endpoint Design:**
-    *   `POST /predict/{model_type}` (e.g., `jet-engine`, `wind-turbine`).
-*   **Dynamic Container Management:**
-    *   The manager looks up `model_type` in a config dictionary.
-    *   Dictionary maps `jet-engine` -> `image: engine-care-worker:latest`.
-    *   This ensures we can add Wind Turbines later without rewriting the proxy logic.
+### Current Status
+*   [x] Core LSTM Inference Pipeline
+*   [x] Dynamic Docker Orchestration
+*   [x] Regime Detection Algorithm
+*   [x] React/Vite Dashboard Implementation
+*   [x] Component-Level Health Visualization
 
-### B. API Response Structure
-The new JSON response from the worker must include the rich data:
-```json
-{
-  "prediction": {
-    "rul": 45,
-    "confidence_score": 0.88,
-    "risk_level": "Warning"
-  },
-  "health_scores": {
-    "fan": 98,
-    "hpc": 72,
-    "lpt": 85,
-    "combustor": 92
-  },
-  "history_trace": [ ...array of sensor values for the graph video... ]
-}
-```
-
-## 4. IMMEDIATE EXECUTION ORDER
-
-1. **Refactor Backend Folders: Create workers/jet-engine/ and move Docker/Model logic there.**
-
-2. **Data Science Implementation: Write the LSTM training script + The "Health Score" extractor logic.**
-
-3. **API Update: Update FastAPI to return the new JSON structure.**
-
-4. **Frontend "Offline Mode": Implement the try-catch fallback mechanism first (easier debugging).**
-
-5. **Frontend Visuals: Build the Graph playback and SVG Blueprint integration.**
+### Future Enhancements
+*   **Uncertainty Quantification:** Implement Monte Carlo Dropout to provide confidence intervals for RUL predictions.
+*   **Fleet Management:** Extend the data model to track multiple engines over time.
+*   **Edge Deployment:** Optimize worker images for deployment on edge devices (e.g., Jetson Nano) for on-wing analysis.
