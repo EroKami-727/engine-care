@@ -103,10 +103,10 @@ def get_or_create_worker():
             if status != "running":
                 log_event("COLD START", "Waking up dormant container...", "warning")
                 container.start()
-                time.sleep(2)
+                # We still sleep a little here, but the real retry logic is in the route now
+                time.sleep(2) 
                 log_event("CONTAINER", "Worker is now Active", "success")
             else:
-                # console.log("[system]Container is already warm.[/]")
                 pass
         except docker.errors.NotFound:
             log_event("DEPLOY", "Provisioning new Docker container...", "warning")
@@ -153,23 +153,42 @@ async def proxy_prediction(request: Request):
     log_event("INFERENCE", "Received Prediction Request. Forwarding to AI...", "info")
     worker_url = get_or_create_worker()
     
-    try:
-        payload = await request.json()
-        async with httpx.AsyncClient() as client_http:
-            response = await client_http.post(f"{worker_url}/predict", json=payload, timeout=10.0)
-            
-        if response.status_code == 200:
-            data = response.json()
-            rul = data['prediction']['rul']
-            log_event("RESULT", f"AI Predicted RUL: {rul} cycles", "success")
-            return data
-        else:
-            log_event("WORKER ERROR", response.text, "error")
-            raise HTTPException(status_code=response.status_code)
+    payload = await request.json()
+    
+    # --- RETRY LOGIC ADDED HERE ---
+    MAX_RETRIES = 5
+    RETRY_DELAY = 2 # seconds
 
-    except Exception as e:
-        log_event("NETWORK ERROR", str(e), "error")
-        raise HTTPException(status_code=502)
+    async with httpx.AsyncClient() as client_http:
+        for attempt in range(1, MAX_RETRIES + 1):
+            try:
+                # Attempt to send request to the worker container
+                response = await client_http.post(f"{worker_url}/predict", json=payload, timeout=30.0)
+                
+                # If we get here, connection was successful
+                if response.status_code == 200:
+                    data = response.json()
+                    rul = data['prediction']['rul']
+                    log_event("RESULT", f"AI Predicted RUL: {rul} cycles", "success")
+                    return data
+                else:
+                    # If the worker itself threw an error (500), don't retry, just return it
+                    log_event("WORKER ERROR", response.text, "error")
+                    raise HTTPException(status_code=response.status_code)
+
+            except (httpx.ConnectError, httpx.ReadError, httpx.NetworkError):
+                # This catches the "502 Bad Gateway" / Connection Refused scenario
+                if attempt < MAX_RETRIES:
+                    log_event("WAIT", f"Container loading... (Attempt {attempt}/{MAX_RETRIES})", "warning")
+                    await asyncio.sleep(RETRY_DELAY)
+                else:
+                    # If we ran out of retries
+                    log_event("NETWORK ERROR", "Container started but did not respond in time.", "error")
+                    raise HTTPException(status_code=504, detail="Worker container timed out on cold start")
+            except Exception as e:
+                # Catch unexpected python errors
+                log_event("ERROR", str(e), "error")
+                raise HTTPException(status_code=500)
 
 if __name__ == "__main__":
     import uvicorn

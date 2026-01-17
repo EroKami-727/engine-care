@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useLocation, useNavigate } from 'react-router-dom';
 import Header from '../components/Header';
-import Footer from '../components/Footer'; // Import Footer
+import Footer from '../components/Footer';
 import CustomCursor from '../components/CustomCursor';
 import InteractiveEngine from '../components/InteractiveEngine';
 import SensorCharts from '../components/SensorCharts';
@@ -15,13 +15,14 @@ interface LocationState {
   file?: File;
 }
 
+// Increased duration for "Waking ML worker" to match backend delay
 const loadingPhases = [
-  { id: 1, label: 'Connecting to server...', duration: 600 },
-  { id: 2, label: 'Waking ML worker...', duration: 800 },
-  { id: 3, label: 'Processing dataset...', duration: 600 },
-  { id: 4, label: 'Running inference...', duration: 500 },
-  { id: 5, label: 'Calculating health scores...', duration: 400 },
-  { id: 6, label: 'Generating report...', duration: 300 },
+  { id: 1, label: 'Connecting to server...', duration: 500 },
+  { id: 2, label: 'Waking ML worker...', duration: 800 }, 
+  { id: 3, label: 'Processing dataset...', duration: 1500 },
+  { id: 4, label: 'Running inference...', duration: 800 },
+  { id: 5, label: 'Calculating health scores...', duration: 600 },
+  { id: 6, label: 'Generating report...', duration: 800 },
 ];
 
 const Results: React.FC = () => {
@@ -85,7 +86,7 @@ const Results: React.FC = () => {
     performPrediction();
   }, [state?.file, model.id]);
 
-  // 2. RUN ANIMATION
+  // 2. RUN ANIMATION (Fixed: No dependency on results)
   useEffect(() => {
     let totalDuration = 0;
     loadingPhases.forEach(phase => totalDuration += phase.duration);
@@ -108,19 +109,23 @@ const Results: React.FC = () => {
         }
       }
 
+      // Stop timer if we hit 100%
       if (progressPercent >= 100) {
         clearInterval(interval);
-        const checkResults = setInterval(() => {
-            if (results) {
-                clearInterval(checkResults);
-                setTimeout(() => setShowResults(true), 300);
-            }
-        }, 100); 
       }
     }, 50);
 
     return () => clearInterval(interval);
-  }, [results]);
+  }, []); // Empty dependency array = RUNS ONCE AND NEVER RESTARTS
+
+  // 3. CHECK FOR COMPLETION (New Effect)
+  useEffect(() => {
+    // Only switch to results view if animation is DONE and results are READY
+    if (progress >= 100 && results) {
+      const timer = setTimeout(() => setShowResults(true), 500);
+      return () => clearTimeout(timer);
+    }
+  }, [progress, results]);
 
   if (!results && showResults) {
     return <div className="results-page">Loading...</div>;
@@ -148,6 +153,12 @@ const Results: React.FC = () => {
               <div className="loading-info">
                 <h2 className="loading-title">Analyzing Engine Data</h2>
                 <p className="loading-model">{model.name}</p>
+                {/* Optional: Show status if waiting for backend after animation */}
+                {progress >= 100 && !results && (
+                  <p className="loading-delay-msg" style={{color: 'var(--color-warning)', marginTop: '0.5rem', fontSize: '0.9rem'}}>
+                    Finalizing analysis...
+                  </p>
+                )}
               </div>
 
               <div className="progress-bar">
@@ -178,7 +189,7 @@ const Results: React.FC = () => {
             <div className="results-container animate-fade-in-up">
               {(apiError || isUsingMockData) && (
                 <div className="demo-banner">
-                  <span>Demo Mode: API Error.</span>
+                  <span>Demo Mode: API Error or Network Issue. Showing Simulation Data.</span>
                 </div>
               )}
 
@@ -269,7 +280,7 @@ const Results: React.FC = () => {
                 </div>
               </div>
 
-              {/* Actions - No animation to ensure visibility */}
+              {/* Actions */}
               <div className="results-actions">
                 <button className="btn btn-secondary" onClick={() => window.open('https://github.com/EroKami-727/engine-care', '_blank')}>
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
@@ -302,8 +313,6 @@ const Results: React.FC = () => {
           )}
         </div>
       </main>
-      
-      {/* Footer added here */}
       <Footer />
     </div>
   );

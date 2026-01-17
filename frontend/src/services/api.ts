@@ -67,6 +67,11 @@ class EngineAPIService {
   }
 
   async predict(request: PredictionRequest): Promise<PredictionResult> {
+    // 1. Create an AbortController for the timeout
+    const controller = new AbortController();
+    // 2. Set timeout to 30 seconds (30000ms) to allow Docker Cold Start
+    const timeoutId = setTimeout(() => controller.abort(), 7000);
+
     try {
       const rawRows = await this.parseFile(request.file);
       const inferenceData = rawRows.map(row => row.slice(2, 26));
@@ -75,7 +80,12 @@ class EngineAPIService {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ data: inferenceData }),
+        // 3. Pass the signal to fetch
+        signal: controller.signal, 
       });
+
+      // Clear the timeout if request finishes successfully
+      clearTimeout(timeoutId);
 
       if (!response.ok) throw new Error(`Server Error: ${response.statusText}`);
 
@@ -95,20 +105,16 @@ class EngineAPIService {
       const sensorHistory = this.mapToSensorHistory(inferenceData);
       
       // --- IMPROVED TREND GENERATION ---
-      // Instead of a straight line, we simulate a non-linear degradation curve
-      // extending from "Now" (Cycle 0 relative) to "Failure" (Cycle RUL)
       const degradationTrends: DegradationTrend[] = [];
       const totalRul = Math.floor(apiData.prediction.rul);
       
-      // Generate 20 points spanning the future RUL for a smooth curve
       const steps = 20;
       const stepSize = totalRul / steps;
 
       for(let i = 0; i <= steps; i++) {
         const currentCycle = Math.floor(i * stepSize);
-        // Exponential decay simulation: Health drops faster near the end
         const progress = i / steps;
-        const decayFactor = Math.pow(progress, 1.5); // Curve the line
+        const decayFactor = Math.pow(progress, 1.5); 
         const simulatedHealth = Math.max(0, 100 - (100 * decayFactor));
         
         degradationTrends.push({
@@ -130,19 +136,23 @@ class EngineAPIService {
         modelName: apiData.prediction.confidence
       };
 
-    } catch (error) {
-      console.error('API Pipeline Failed:', error);
+    } catch (error: any) {
+      clearTimeout(timeoutId); // Ensure timeout is cleared on error
+      
+      if (error.name === 'AbortError') {
+        console.error('API Timeout: Docker container took too long to wake up.');
+      } else {
+        console.error('API Pipeline Failed:', error);
+      }
       throw error;
     }
   }
 
   // Mock for Fallback
   generateMockPrediction(modelId: string): PredictionResult {
-    // Generate 50 cycles of fake history
     const sensorHistory: SensorData[] = [];
     const degradationTrends: DegradationTrend[] = [];
     
-    // Starting values
     let temp = 1540; 
     let press = 550; 
     let rpm = 2380;  
@@ -174,7 +184,6 @@ class EngineAPIService {
       rul: 85,
       confidence: 80,
       riskLevel: 'Safe',
-      // FIX: Use lowercase keys here to match ComponentHealth interface
       healthScores: { 
         fan: 90, 
         lpc: 88, 

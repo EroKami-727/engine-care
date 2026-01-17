@@ -70,9 +70,9 @@ const Hero: React.FC = () => {
             </div>
             <div className="engine-labels">
               <div className="engine-label label-fan">
-                <span className="label-dot"></span>
+                <span className="label-dot danger"></span>
                 <span className="label-text">Fan Module</span>
-                <span className="label-value">98%</span>
+                <span className="label-value">28%</span>
               </div>
               <div className="engine-label label-hpc">
                 <span className="label-dot warning"></span>
