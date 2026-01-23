@@ -70,7 +70,7 @@ class EngineAPIService {
     // 1. Create an AbortController for the timeout
     const controller = new AbortController();
     // 2. Set timeout to 30 seconds (30000ms) to allow Docker Cold Start
-    const timeoutId = setTimeout(() => controller.abort(), 12000);
+    const timeoutId = setTimeout(() => controller.abort(), 16000);
 
     try {
       const rawRows = await this.parseFile(request.file);
