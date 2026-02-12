@@ -183,3 +183,49 @@
 - **No missing values** in the raw data
 - Training and test units are **independent** (different engines)
 - RUL ground truth only provided for **test data**
+
+---
+
+## Exploratory Data Analysis (EDA)
+
+This section visualizes the dataset properties, including sensor correlations, degradation trends, and the effects of normalization. These insights drive the feature engineering and model selection process.
+
+### 1. RUL Distribution
+The distribution of engine lifespans (cycles to failure) across all four datasets.
+
+![RUL Distribution](eda_images/rul_distribution.png)
+
+*   **Observation:** Most engines fail between 150 and 250 cycles.
+*   **Implication:** Our models should be tuned to predict accurately within this range. Very long or very short runs are outliers.
+
+### 2. Feature Correlation Matrix
+Correlation between sensors and Remaining Useful Life (RUL).
+
+#### FD001 (Stable Conditions)
+![Correlation FD001](eda_images/correlation_FD001.png)
+
+*   **Observation:** Several sensors (e.g., T24, T30, T50, P30, Nf, Nc) show strong negative correlation with RUL (as they increase, RUL decreases).
+*   **Action:** These are the most predictive features for simple regimes.
+
+#### FD004 (Complex Conditions)
+![Correlation FD004](eda_images/correlation_FD004.png)
+
+*   **Observation:** Correlations are weaker and more scattered due to the varying operating conditions (altitude, Mach, TRA).
+*   **Action:** Simple linear models will fail here. We need deep learning (CNN/Transformers) and robust scaling to handle the non-linear relationships.
+
+### 3. Sensor Degradation Trends
+Visualizing how sensor readings change as an engine approaches failure (Unit 1, FD001).
+
+![Sensor Trends](eda_images/sensor_trends_FD001.png)
+
+*   **Observation:** Clear exponential trends are visible in sensors like T24 (Temperature) and P30 (Pressure) as the engine degrades.
+*   **Action:** These trends confirm the "Run-to-Failure" nature of the training data.
+
+### 4. Normalization Effects (FD002/FD004)
+Demonstrating the need for Robust Scaling in datasets with multiple operating conditions.
+
+![Normalization Effect](eda_images/normalization_effect.png)
+
+*   **Raw Data:** Multimodal distribution due to different flight regimes (e.g., Sea Level vs. High Altitude).
+*   **MinMax Scaler:** squashes data into 0-1 but preserves the multimodal "spikes," which can confuse the model.
+*   **Robust Scaler:** Focuses on the interquartile range, effectively handling the outliers caused by throttle changes. This is why we use `RobustScaler` for Regime B.
