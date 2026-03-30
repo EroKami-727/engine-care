@@ -9,7 +9,7 @@ interface UploadModalProps {
 }
 
 const UploadModal: React.FC<UploadModalProps> = ({ model, onClose }) => {
-  const [isDragging, setIsDragging] = useState(false);
+  const[isDragging, setIsDragging] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const navigate = useNavigate();
@@ -20,7 +20,7 @@ const UploadModal: React.FC<UploadModalProps> = ({ model, onClose }) => {
     return () => {
       document.body.style.overflow = '';
     };
-  }, []);
+  },[]);
 
   const handleDragOver = (e: React.DragEvent) => {
     e.preventDefault();

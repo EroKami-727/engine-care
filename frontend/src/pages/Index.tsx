@@ -10,58 +10,19 @@ import CustomCursor from '../components/CustomCursor';
 import engineBlueprint from '../assets/engine-blueprint.png';
 import './Index.css';
 
-const modelsData: ModelData[] = [
+const modelsData: ModelData[] =[
   {
     id: 'rul-predictor',
-    name: 'RUL Predictor',
-    description: 'Predicts the Remaining Useful Life (RUL) of turbofan engines using Long Short-Term Memory neural networks. Analyzes time-series sensor data to forecast cycles until failure.',
-    algorithm: 'LSTM Neural Network',
-    predicts: 'Remaining Useful Life (Cycles)',
-    accuracy: '92%',
-    speed: '~4s',
-    badge: 'LSTM',
-    techTags: ['TensorFlow', 'Time-Series', 'Deep Learning'],
+    name: 'Regime-Aware RUL Predictor',
+    description: 'Advanced predictive maintenance engine evaluating NASA C-MAPSS turbofan telemetry. Features Regime-Aware Logic to dynamically route steady-state or high-load data to specialized LSTM networks using a 50-cycle lookback window. Simultaneously derives granular health indexes for the Fan, High-Pressure Compressor (HPC), Combustor, and Turbines.',
+    algorithm: 'Dual LSTM Networks with Regime Routing',
+    predicts: 'Piecewise Remaining Useful Life & Subsystem Health',
+    accuracy: 'Optimized (Robust Scaling + Asymmetric PHM)',
+    speed: 'Zero-Ops FastAPI Orchestrator (~20MB Idle)',
+    badge: 'TensorFlow / Keras',
+    techTags: ['50-Cycle Lookback', 'Regime-Aware Logic', 'Robust Scaling', 'Visual Twin'],
     image: engineBlueprint,
-    dataInfo: 'NASA C-MAPSS format: 21 sensor columns + 3 operational settings, time-series per engine unit'
-  },
-  {
-    id: 'health-analyzer',
-    name: 'Health Analyzer',
-    description: 'Calculates real-time health scores (0-100%) for individual engine components using Z-Score deviation analysis from baseline sensor readings during healthy operation.',
-    algorithm: 'Z-Score Statistical Analysis',
-    predicts: 'Component Health Scores (0-100%)',
-    accuracy: '95%',
-    speed: '~2s',
-    badge: 'Stats',
-    techTags: ['Statistical Analysis', 'Anomaly Detection'],
-    image: engineBlueprint,
-    dataInfo: 'Sensor readings with baseline reference from cycles 0-10 for calibration'
-  },
-  {
-    id: 'risk-classifier',
-    name: 'Risk Classifier',
-    description: 'Classifies engine risk level based on RUL predictions and rate of degradation. Outputs categorical status: Safe, Warning, or Critical for maintenance prioritization.',
-    algorithm: 'Ensemble Classifier',
-    predicts: 'Risk Level (Safe/Warning/Critical)',
-    accuracy: '94%',
-    speed: '~1s',
-    badge: 'Classification',
-    techTags: ['Random Forest', 'Ensemble', 'Classification'],
-    image: engineBlueprint,
-    dataInfo: 'RUL predictions combined with degradation velocity metrics'
-  },
-  {
-    id: 'degradation-tracker',
-    name: 'Degradation Tracker',
-    description: 'Monitors degradation velocity to determine if engine failure is progressing linearly or exponentially. Uses slope analysis of the last N data points.',
-    algorithm: 'Regression Analysis',
-    predicts: 'Degradation Velocity Pattern',
-    accuracy: '89%',
-    speed: '~1.5s',
-    badge: 'Regression',
-    techTags: ['Linear Regression', 'Trend Analysis'],
-    image: engineBlueprint,
-    dataInfo: 'Historical sensor data with minimum 50 cycles for accurate trend detection'
+    dataInfo: 'Accepts 21 sensor readings + 3 operational settings. Handles multi-condition flights (FD002/FD004) natively.'
   }
 ];
 
@@ -77,14 +38,14 @@ const Index: React.FC = () => {
       <section id="models" className="section models-section">
         <div className="container">
           <div className="section-header">
-            <span className="section-subtitle">Powered by Machine Learning</span>
-            <h2 className="section-title">Our Models</h2>
+            <span className="section-subtitle">Powered by Deep Learning</span>
             <p className="section-description">
-              Advanced predictive maintenance algorithms trained on NASA C-MAPSS turbofan engine dataset.
+              A condition-based maintenance algorithm trained on the NASA C-MAPSS dataset. Replaces schedule-based maintenance with high-accuracy, run-to-failure forecasting.
             </p>
           </div>
 
-          <div className="models-grid">
+          {/* Added 'single-card-layout' class here */}
+          <div className="models-grid single-card-layout">
             {modelsData.map((model, index) => (
               <ModelCard 
                 key={model.id}

@@ -38,11 +38,11 @@ const About: React.FC = () => {
                 <span className="stat-text">Accuracy</span>
               </div>
               <div className="stat-item">
-                <span className="stat-number">0ms</span>
+                <span className="stat-number">20ms</span>
                 <span className="stat-text">Cold Start*</span>
               </div>
               <div className="stat-item">
-                <span className="stat-number">4</span>
+                <span className="stat-number">2</span>
                 <span className="stat-text">ML Models</span>
               </div>
             </div>
